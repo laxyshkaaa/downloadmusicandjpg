@@ -1,8 +1,19 @@
 import java.io.*;
 import java.net.URL;
 import java.net.URLConnection;
+import java.util.HashMap;
+import java.util.Map;
 
 class Downloader {
+    private static final Map<String, byte[]> FILE_SIGNATURES = new HashMap<>();
+
+    static {
+        FILE_SIGNATURES.put("mp3", new byte[]{(byte) 0xFF, (byte) 0xFB});
+        FILE_SIGNATURES.put("mp3", new byte[]{(byte) 0x49, (byte) 0x44, (byte) 0x33}); // ID3
+        FILE_SIGNATURES.put("jpg", new byte[]{(byte) 0xFF, (byte) 0xD8, (byte) 0xFF});
+
+    }
+
     public static void main(String[] args) {
         new Thread(() -> downloadFile("https://cdn16.deliciouspeaches.com/get/music/20190912/Yung_Trappa_feat_Baksh_-_Odna_noch_66538071.mp3", "anthem.mp3")).start();
         new Thread(() -> downloadFile("https://i.artfile.ru/2880x1800_729861_[www.ArtFile.ru].jpg", "cat_image.jpg")).start();
@@ -28,7 +39,7 @@ class Downloader {
                 byte[] header = new byte[3];  // Читаем первые байты для проверки сигнатуры
                 input.read(header);
 
-                if (!checkFileSignature(header, fileName)) {
+                if (!validateFile(header, fileName)) {
                     System.out.println("Ошибка: файл " + fileName + " имеет неверный тип.");
                     return;
                 }
@@ -47,31 +58,21 @@ class Downloader {
         }
     }
 
-    private static boolean checkFileSignature(byte[] signature, String fileName) {
-        String extension = extractExtension(fileName).toLowerCase();
+    private static boolean validateFile(byte[] header, String fileName) {
+        String extension = fileName.substring(fileName.lastIndexOf('.') + 1).toLowerCase();
+        byte[] expectedSignature = FILE_SIGNATURES.get(extension);
 
-        switch (extension) {
-            case "mp3":
-                return validateMp3(signature);
-            case "jpg":
-                return validateJpg(signature);
-            default:
-                System.out.println("Неизвестное расширение файла: " + extension);
-                return false;
+        if (expectedSignature == null) {
+            System.out.println("Неизвестное расширение файла: " + extension);
+            return false;
         }
-    }
 
-    private static boolean validateMp3(byte[] signature) {
-        return (signature[0] == (byte) 0xFF && signature[1] == (byte) 0xFB) ||
-                (signature[0] == (byte) 0x49 && signature[1] == (byte) 0x44 && signature[2] == (byte) 0x33);
-    }
-
-    private static boolean validateJpg(byte[] signature) {
-        return signature[0] == (byte) 0xFF && signature[1] == (byte) 0xD8 && signature[2] == (byte) 0xFF;
-    }
-
-    private static String extractExtension(String fileName) {
-        int index = fileName.lastIndexOf('.');
-        return (index == -1) ? "" : fileName.substring(index + 1);
+        // Проверяем соответствие сигнатуры (первые байты файла)
+        for (int i = 0; i < expectedSignature.length; i++) {
+            if (header[i] != expectedSignature[i]) {
+                return false;
+            }
+        }
+        return true;
     }
 }
