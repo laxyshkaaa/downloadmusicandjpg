@@ -3,6 +3,7 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Scanner;
 
 class Downloader {
     private static final Map<String, byte[]> FILE_SIGNATURES = new HashMap<>();
@@ -11,14 +12,26 @@ class Downloader {
         FILE_SIGNATURES.put("mp3", new byte[]{(byte) 0xFF, (byte) 0xFB});
         FILE_SIGNATURES.put("mp3", new byte[]{(byte) 0x49, (byte) 0x44, (byte) 0x33}); // ID3
         FILE_SIGNATURES.put("jpg", new byte[]{(byte) 0xFF, (byte) 0xD8, (byte) 0xFF});
-
     }
 
     public static void main(String[] args) {
-        new Thread(() -> downloadFile("https://cdn16.deliciouspeaches.com/get/music/20190912/Yung_Trappa_feat_Baksh_-_Odna_noch_66538071.mp3", "anthem.mp3")).start();
-        new Thread(() -> downloadFile("https://i.artfile.ru/2880x1800_729861_[www.ArtFile.ru].jpg", "cat_image.jpg")).start();
-        new Thread(() -> downloadFile("https://download.samplelib.com/mp4/sample-5s.mp4", "sample_video.mp4")).start();
-        new Thread(() -> downloadFile("https://fastfine.ru/storage/app/uploads/public/64f/094/2ed/64f0942edc6ac997802569.docx", "document.docx")).start();
+        Scanner scanner = new Scanner(System.in);
+
+
+        System.out.print("Введите ссылку на скачивание музыки (mp3): ");
+        String musicUrl = scanner.nextLine();
+        System.out.print("Введите имя файла для сохранения музыки: ");
+        String musicFileName = scanner.nextLine();
+
+
+        System.out.print("Введите ссылку на скачивание фотографии (jpg): ");
+        String photoUrl = scanner.nextLine();
+        System.out.print("Введите имя файла для сохранения фотографии: ");
+        String photoFileName = scanner.nextLine();
+
+        // Создаем потоки для загрузки файлов
+        new Thread(() -> downloadFile(musicUrl, musicFileName)).start();
+        new Thread(() -> downloadFile(photoUrl, photoFileName)).start();
     }
 
     private static void openFile(String filePath) {
@@ -36,7 +49,7 @@ class Downloader {
             try (InputStream input = connection.getInputStream();
                  ByteArrayOutputStream memoryBuffer = new ByteArrayOutputStream()) {
 
-                byte[] header = new byte[3];  // Читаем первые байты для проверки сигнатуры
+                byte[] header = new byte[4];  // Читаем первые байты для проверки сигнатуры
                 input.read(header);
 
                 if (!validateFile(header, fileName)) {
